@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
 import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../types';
+import { ApiError } from '../custom-types';
 
 export class AppError extends Error {
   statusCode: number;

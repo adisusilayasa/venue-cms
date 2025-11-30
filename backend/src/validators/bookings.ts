@@ -18,6 +18,8 @@ export const bookingSchema = z.object({
 export const bookingQuerySchema = z.object({
   venueId: z.string().uuid().optional(),
   status: z.string().optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
 });
 
 export type BookingInput = z.infer<typeof bookingSchema>;

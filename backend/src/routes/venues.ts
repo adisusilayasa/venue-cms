@@ -28,9 +28,20 @@ router.get(
       where.pricePerHour = { lte: parseFloat(query.maxPrice) };
     }
 
+    // Pagination parameters
+    const page = parseInt(query.page || '1');
+    const limit = parseInt(query.limit || '12');
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination metadata
+    const total = await prisma.venue.count({ where });
+
+    // Fetch venues with pagination
     const venues = await prisma.venue.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
       include: {
         bookings: {
           orderBy: { createdAt: 'desc' },
@@ -39,7 +50,20 @@ router.get(
       },
     });
 
-    res.json(venues);
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      data: venues,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
   })
 );
 

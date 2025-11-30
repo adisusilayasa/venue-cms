@@ -13,6 +13,8 @@ export const venueQuerySchema = z.object({
   search: z.string().optional(),
   minCapacity: z.string().optional(),
   maxPrice: z.string().optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
 });
 
 export const updateVenueSchema = venueSchema.partial();

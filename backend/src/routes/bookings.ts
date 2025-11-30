@@ -21,15 +21,39 @@ router.get(
       where.status = query.status;
     }
 
+    // Pagination parameters
+    const page = parseInt(query.page || '1');
+    const limit = parseInt(query.limit || '10');
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination metadata
+    const total = await prisma.booking.count({ where });
+
+    // Fetch bookings with pagination
     const bookings = await prisma.booking.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
       include: {
         venue: true,
       },
     });
 
-    res.json(bookings);
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      data: bookings,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    });
   })
 );
 
@@ -74,6 +98,44 @@ router.post(
     const endTime = new Date(data.endTime);
     const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
     const totalPrice = hours * Number(venue.pricePerHour);
+
+    // Check for conflicting bookings (availability check)
+    const conflictingBooking = await prisma.booking.findFirst({
+      where: {
+        venueId: data.venueId,
+        status: { not: 'cancelled' }, // Don't check against cancelled bookings
+        OR: [
+          // Case 1: New booking starts during existing booking
+          {
+            AND: [
+              { startTime: { lte: startTime } },
+              { endTime: { gt: startTime } },
+            ],
+          },
+          // Case 2: New booking ends during existing booking
+          {
+            AND: [
+              { startTime: { lt: endTime } },
+              { endTime: { gte: endTime } },
+            ],
+          },
+          // Case 3: New booking completely contains existing booking
+          {
+            AND: [
+              { startTime: { gte: startTime } },
+              { endTime: { lte: endTime } },
+            ],
+          },
+        ],
+      },
+    });
+
+    if (conflictingBooking) {
+      throw new AppError(
+        'Venue is not available for the selected dates. Please choose different dates.',
+        409
+      );
+    }
 
     const booking = await prisma.booking.create({
       data: {
