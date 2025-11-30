@@ -562,6 +562,78 @@ docker system prune -f
 
 ---
 
+## 🏗️ Technical Approach & Design Decisions
+
+### **Database Design: PostgreSQL EXCLUDE Constraint**
+
+**Problem**: Prevent race conditions when multiple users try to book the same venue simultaneously.
+
+**Solution**: PostgreSQL EXCLUDE constraint using GIST indexes on date ranges.
+
+```sql
+EXCLUDE USING gist (
+    "venueId" WITH =,
+    tsrange("startTime", "endTime", '[]'::text) WITH &&
+)
+WHERE ((status <> 'cancelled'::text))
+```
+
+**Tradeoffs:**
+- ✅ **Pros**:
+  - 100% race-condition proof - database enforces it atomically
+  - No lock waits - instant fail on conflict (better UX)
+  - Cannot be bypassed (even direct SQL access is blocked)
+  - Crash-safe - works even if app crashes mid-transaction
+  - Automatic enforcement - no manual transaction management needed
+
+- ❌ **Cons**:
+  - PostgreSQL-specific (less portable to MySQL/SQLite)
+  - Deadlock risk in complex multi-table transactions
+  - Harder to customize error messages
+  - Requires understanding PostgreSQL-specific features
+
+**Alternative Considered**: Row-level locking with `SELECT FOR UPDATE`
+- Would require explicit `$transaction` wrapping
+- Risk of lock waits and timeouts
+- More error-prone (easy to forget transactions)
+- Chosen EXCLUDE constraint for better reliability
+
+### **API Design: Pagination vs. All-at-Once**
+
+**Decision**: Backend implements full pagination, frontend uses default limit (fetch all).
+
+**Rationale**:
+- Backend-ready for scalability (12 venues, 10 bookings per page default)
+- Frontend simple for current dataset (12 venues is manageable)
+- Easy to add pagination UI later without backend changes
+
+**Tradeoffs**:
+- Frontend loads all data at once (acceptable for 12 venues)
+- Future-proof: Just need to add pagination controls when dataset grows
+
+### **Validation Strategy: Zod + Database Constraints**
+
+**Approach**: Two-layer validation
+1. **Zod schemas** in backend - type-safe runtime validation
+2. **Database constraints** - enforced at DB level (UNIQUE, EXCLUDE, etc.)
+
+**Benefits**:
+- Fail fast at API level with clear error messages
+- Fail safe at DB level even if API validation bypassed
+- TypeScript types from Zod for end-to-end type safety
+
+### **UI Architecture: Atomic Design**
+
+**Structure**: Atoms → Molecules → Organisms → Templates → Pages
+
+**Tradeoffs**:
+- ✅ **Pros**: Reusable, maintainable, consistent design
+- ❌ **Cons**: More files upfront, learning curve for atomic design
+
+**Implementation**: Built shadcn/ui components with ZEN theme customization
+
+---
+
 ## 📈 Performance
 
 - **Backend**: ~50ms response time for list endpoints
