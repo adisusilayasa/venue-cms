@@ -562,6 +562,155 @@ docker system prune -f
 
 ---
 
+## 🏗️ Architecture Overview
+
+### **System Architecture Diagram**
+
+```
+┌─────────────────┐       HTTP/REST       ┌──────────────────┐
+│  Frontend       │ ◄────────────────────►│  Backend         │
+│  Next.js 14     │                       │  Express.js      │
+│  (Port 3000)    │                       │  (Port 3001)     │
+└─────────────────┘                       └──────────────────┘
+                                                      │
+                                                      ▼
+                                               ┌─────────────────┐
+                                               │  PostgreSQL     │
+                                               │  Database       │
+                                               │  (Port 5432)    │
+                                               └─────────────────┘
+```
+
+### **Backend Architecture - Layered/MVC Pattern**
+
+```
+┌─────────────────────────────────────────────┐
+│  Routes Layer                               │
+│  (src/routes/*.ts)                          │
+│  - HTTP request handling                    │
+│  - Route definitions                        │
+└────────────────┬────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────┐
+│  Validation Layer                           │
+│  (src/validators/*.ts)                      │
+│  - Zod schemas                              │
+│  - Input validation                         │
+└────────────────┬────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────┐
+│  Business Logic                             │
+│  - Price calculations                       │
+│  - Booking conflicts                        │
+└────────────────┬────────────────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────────────────┐
+│  Database Layer                             │
+│  Prisma ORM                                 │
+│  - Query building                           │
+│  - Type-safe queries                        │
+└─────────────────────────────────────────────┘
+```
+
+**Technologies:**
+- **Express.js 5.1** - Web framework
+- **TypeScript** - Type safety
+- **Prisma ORM 5.22** - Database abstraction
+- **PostgreSQL 15** - Relational database
+- **Zod** - Runtime validation
+- **tsx** - TypeScript execution
+
+---
+
+### **Frontend Architecture - Atomic Design**
+
+```
+/app
+  ├── page.tsx                    # Pages
+  ├── layout.tsx                  # Root Layout
+  └── venues/[id]/page.tsx        # Dynamic routes
+
+/components
+  ├── ui/                         # Atoms
+  │   ├── button.tsx              # Button, Input, Card, etc.
+  │   ├── input.tsx               # Basic UI elements
+  │   └── label.tsx
+  ├── molecules/                  # Molecules
+  │   ├── venue-card.tsx          # Venue card with image & info
+  │   ├── search-bar.tsx          # Search input + button
+  │   ├── booking-form.tsx        # Booking form inputs
+  │   └── status-badge.tsx        # Status display
+  ├── organisms/                  # Organisms
+  │   ├── header.tsx              # Navigation bar
+  │   └── venue-grid.tsx          # Grid of venue cards
+  └── templates/                  # Templates
+      └── home-page-layout.tsx    # Page layouts
+
+/lib
+  └── api.ts                      # API client
+```
+
+**Technologies:**
+- **Next.js 14** - React framework (App Router)
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - UI component library
+- **Native fetch** - HTTP client
+- **React Hooks** - State management
+
+**Design System:**
+- **Japanese ZEN Theme** - Stone color palette
+- **Atomic Design** - Reusable component hierarchy
+- **Responsive Design** - Mobile-first approach
+
+---
+
+### **Database Architecture**
+
+**Pattern**: Relational Database with Optimizations
+
+**Schema Design:**
+- **Venues Table** - Venue information
+  - Primary key: `id` (UUID)
+  - Indexed fields: `name`, `location`, `capacity`
+
+- **Bookings Table** - Booking records
+  - Primary key: `id` (UUID)
+  - Foreign key: `venueId` → Venues
+  - Date range: `startTime`, `endTime`
+  - Status tracking: `confirmed`, `pending`, `cancelled`
+
+**Indexing Strategy:**
+- **B-tree indexes** on primary/foreign keys
+- **GIST index** on `tsrange(startTime, endTime)` for overlap queries
+- **Composite indexes** for common query patterns
+
+**Constraints:**
+- **EXCLUDE constraint** - Prevents overlapping bookings
+- **Foreign keys** - Referential integrity
+- **Check constraints** - Data validation
+
+---
+
+### **Development & Deployment Architecture**
+
+**Development (Docker Compose):**
+```yaml
+Frontend (Next.js)    → Port 3000
+Backend (Express.js)  → Port 3001
+PostgreSQL            → Port 5432
+```
+
+**Production Ready For:**
+- **Frontend**: Vercel, Netlify, AWS S3 + CloudFront
+- **Backend**: Railway, Heroku, AWS ECS, DigitalOcean
+- **Database**: Supabase, PlanetScale (PostgreSQL), AWS RDS
+
+---
+
 ## 🏗️ Technical Approach & Design Decisions
 
 ### **Database Design: PostgreSQL EXCLUDE Constraint**
