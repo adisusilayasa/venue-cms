@@ -3,22 +3,26 @@
 import { Header } from "@/components/organisms/header"
 import { SearchBar } from "@/components/molecules/search-bar"
 import { VenueGrid } from "@/components/organisms/venue-grid"
-import { Venue } from "@/lib/api"
+import { Venue, PaginationMeta } from "@/lib/api"
 
 interface HomePageLayoutProps {
   venues: Venue[]
   loading: boolean
   error: string
+  pagination?: PaginationMeta | null
   onSearch: (query: string) => void
   onClear: () => void
+  onPageChange: (page: number) => void
 }
 
 export function HomePageLayout({
   venues,
   loading,
   error,
+  pagination,
   onSearch,
   onClear,
+  onPageChange,
 }: HomePageLayoutProps) {
   return (
     <div className="min-h-screen bg-stone-50">
@@ -46,7 +50,12 @@ export function HomePageLayout({
       )}
 
       <main className="max-w-6xl mx-auto px-8 pb-32">
-        <VenueGrid venues={venues} loading={loading} />
+        <VenueGrid
+          venues={venues}
+          loading={loading}
+          pagination={pagination}
+          onPageChange={onPageChange}
+        />
       </main>
 
       <footer className="bg-white border-t border-stone-200 py-12">

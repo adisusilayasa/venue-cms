@@ -25,15 +25,33 @@ export interface Booking {
   venue?: Venue;
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+export interface VenuesResponse {
+  data: Venue[];
+  pagination: PaginationMeta;
+}
+
 export async function fetchVenues(params?: {
   search?: string;
   minCapacity?: number;
   maxPrice?: number;
-}): Promise<Venue[]> {
+  page?: number;
+  limit?: number;
+}): Promise<VenuesResponse> {
   const queryParams = new URLSearchParams();
   if (params?.search) queryParams.append('search', params.search);
   if (params?.minCapacity) queryParams.append('minCapacity', params.minCapacity.toString());
   if (params?.maxPrice) queryParams.append('maxPrice', params.maxPrice.toString());
+  if (params?.page) queryParams.append('page', params.page.toString());
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
 
   const response = await fetch(`${API_URL}/api/venues?${queryParams.toString()}`);
   if (!response.ok) throw new Error('Failed to fetch venues');

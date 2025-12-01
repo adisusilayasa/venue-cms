@@ -1,14 +1,16 @@
 "use client"
 
-import { Venue } from "@/lib/api"
+import { Venue, PaginationMeta } from "@/lib/api"
 import { VenueCard } from "@/components/molecules/venue-card"
 
 interface VenueGridProps {
   venues: Venue[]
   loading?: boolean
+  pagination?: PaginationMeta | null
+  onPageChange: (page: number) => void
 }
 
-export function VenueGrid({ venues, loading }: VenueGridProps) {
+export function VenueGrid({ venues, loading, pagination, onPageChange }: VenueGridProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -31,7 +33,7 @@ export function VenueGrid({ venues, loading }: VenueGridProps) {
     )
   }
 
-  if (venues.length === 0) {
+  if (!venues || venues.length === 0) {
     return (
       <div className="text-center py-24">
         <p className="text-stone-400 font-light">No venues found.</p>
@@ -39,11 +41,51 @@ export function VenueGrid({ venues, loading }: VenueGridProps) {
     )
   }
 
+  const shouldShowPagination = pagination && pagination.totalPages > 1
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {venues.map((venue) => (
-        <VenueCard key={venue.id} venue={venue} />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {venues?.map((venue) => (
+          <VenueCard key={venue.id} venue={venue} />
+        ))}
+      </div>
+
+      {shouldShowPagination && (
+        <div className="flex justify-center items-center gap-2 mt-12">
+          <button
+            onClick={() => onPageChange(pagination.page - 1)}
+            disabled={!pagination.hasPrevPage}
+            className="px-4 py-2 border border-stone-200 rounded bg-white text-stone-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50 transition-colors"
+          >
+            Previous
+          </button>
+
+          <div className="flex gap-1">
+            {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => onPageChange(page)}
+                className={`px-4 py-2 border border-stone-200 rounded transition-colors ${
+                  page === pagination.page
+                    ? 'bg-stone-800 text-white border-stone-800'
+                    : 'bg-white text-stone-700 hover:bg-stone-50'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => onPageChange(pagination.page + 1)}
+            disabled={!pagination.hasNextPage}
+            className="px-4 py-2 border border-stone-200 rounded bg-white text-stone-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-stone-50 transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      )}
+    </>
   )
 }
